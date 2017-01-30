@@ -27,7 +27,7 @@ def subreg_info(int fn, int B, int Z, int S):
 @checked
 def subreg_ptset_read(int fn, int B, int Z, int S):
     *_, npnts, _, _ = subreg_info(fn, B, Z, S)
-    pnts = np.zeros((npnts,), dtype=np.int32, order='F')
+    pnts = np.zeros((npnts,), dtype=cgsize, order='F')
     pnts_ptr = <cgsize_t *>np.PyArray_DATA(pnts)
 
     return cg_subreg_ptset_read(fn, B, Z, S, pnts_ptr), pnts
@@ -53,10 +53,11 @@ def subreg_gcname_read(int fn, int B, int Z, int S):
     #const cgsize_t *pnts, int *S);
 @checked
 def subreg_ptset_write(int fn, int B, int Z, const char *regname, int dimension, GridLocation location,
-        PointSetType ptset_type, cgsize_t npnts, np.ndarray pnts):
+        PointSetType ptset_type, np.ndarray pnts):
     cdef int S
-    pnts_ptr = <cgsize_t *>np.PyArray_DATA(pnts)
-    return cg_subreg_ptset_write(fn, B, Z, regname, dimension, location, ptset_type, npnts, pnts_ptr, &S), S
+    cdef npnts = to_cgtype_array(pnts)
+    return cg_subreg_ptset_write(fn, B, Z, regname, dimension, location, ptset_type,
+                                 npnts.size, <cgsize_t *>ptr(npnts), &S), S
 
 #int cg_subreg_bcname_write(int fn, int B, int Z, const char *regname,
     #int dimension, const char *bcname, int *S);

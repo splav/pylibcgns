@@ -15,7 +15,7 @@ def array_info(int A):
     cdef DataType DataType
     cdef int DataDimension
     cdef cgsize_t *DimensionVector_ptr
-    DimensionVector = np.zeros((ADF_MAX_DIMENSIONS,) ,dtype=np.int32, order='F')
+    DimensionVector = np.zeros((ADF_MAX_DIMENSIONS,) ,dtype=cgsize, order='F')
     DimensionVector_ptr = <cgsize_t *>np.PyArray_DATA(DimensionVector)
     return (cg_array_info(A, ArrayName, &DataType, &DataDimension, DimensionVector_ptr),
                 ArrayName, DataType, DataDimension, DimensionVector[0:DataDimension])
@@ -47,11 +47,11 @@ def array_read(int A):
     #DataType_t DataType, int DataDimension,
     #const cgsize_t * DimensionVector, const void * Data);
 @checked
-def array_write(const char * ArrayName, DataType DataType, int DataDimension,
+def array_write(const char * ArrayName, int DataDimension,
         DimensionVector, np.ndarray Data):
-    nDimensionVector = np.asarray(DimensionVector, dtype=np.int32, order='F')
-    DimensionVector_ptr = <cgsize_t *>np.PyArray_DATA(nDimensionVector)
-    return cg_array_write(ArrayName, DataType, DataDimension, DimensionVector_ptr, np.PyArray_DATA(Data))
+    dtype = fromnumpydtype(Data.dtype)
+    nDimensionVector = to_cgtype_array(DimensionVector)
+    return cg_array_write(ArrayName, dtype, DataDimension, <cgsize_t*>ptr(nDimensionVector), ptr(Data))
 
 # Read and write UserDefinedData_t Nodes - new in version 2.1
 

@@ -10,17 +10,14 @@ def nzones(int fn, int B):
 @checked
 def zone_read(int fn, int B, int Z):
     cdef char zname[MAXNAMELENGTH]
-    cdef cgsize_t *zsize
-    cdef np.ndarray[dtype=np.int32_t, ndim=2] azsize
 
     cdef int dim
     e = cg_index_dim(fn, B, Z, &dim)
     if e:
         return e
 
-    azsize = np.zeros((3,dim), dtype=np.int32, order='C')
-    zsize = <cgsize_t *>azsize.data
-    return cg_zone_read(fn, B, Z, zname, zsize), zname, azsize
+    size = buf((3,dim), cgsize)
+    return cg_zone_read(fn, B, Z, zname, <cgsize_t *>ptr(size)), zname, size
 
 #int cg_zone_type(int file_number, int B, int Z,
     #ZoneType_t *type);
@@ -38,14 +35,10 @@ def zone_id(int fn, int B, int Z):
 #int cg_zone_write(int fn, int B, const char * zonename,
     #const cgsize_t * size, ZoneType_t type, int *Z);
 @checked
-def zone_write(int fn, int B, zonename, size, ZoneTypetype):
+def zone_write(int fn, int B, zonename, size, type):
     cdef int Z
-    cdef np.ndarray[dtype=np.int32_t, ndim=1] zsize
-    cdef cgsize_t *ptrzs
-    zsize = np.require(size.flatten(), dtype=np.int32)
-    ptrzs = <cgsize_t *>zsize.data
-
-    return cg_zone_write(fn, B, zonename, ptrzs, type, &Z), Z
+    nsize = to_cgtype_array(size)
+    return cg_zone_write(fn, B, zonename, <cgsize_t *>ptr(nsize), type, &Z), Z
 
 #int cg_index_dim(int fn, int B, int Z, int *index_dim);
 @checked

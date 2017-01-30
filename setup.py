@@ -22,18 +22,18 @@ ext_modules = [Extension("pylibcgns",
 setup(
   name = 'pylibcgns',
   cmdclass = {'build_ext': build_ext},
-  version='0.0.6',
+  version='0.1.0',
   description='CGNS C-library wrapper',
 
   author='Aleksandrov Sergey',
   author_email='splavgm@gmail.com',
 
   url='https://github.com/splav/pylibcgns',
-  download_url='https://github.com/splav/pylibcgns/archive/0.0.6.tar.gz',
+  download_url='https://github.com/splav/pylibcgns/archive/0.1.0.tar.gz',
 
   license='MIT',
 
-  
+
 
   ext_modules = ext_modules
 )

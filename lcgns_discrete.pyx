@@ -27,7 +27,7 @@ def discrete_size(int fn, int B, int Z, int D):
     cdef int data_dim
     cdef cgsize_t* dim_vals_ptr
     _, cdim, _ = base_read(fn, B)
-    dim_vals = np.ones((cdim,), dtype=np.int32, order='F')
+    dim_vals = np.ones((cdim,), dtype=cgsize, order='F')
     dim_vals_ptr = <cgsize_t *>np.PyArray_DATA(dim_vals)
     return cg_discrete_size(fn, B, Z, D, &data_dim, dim_vals_ptr), data_dim, dim_vals[0:data_dim]
 
@@ -52,7 +52,7 @@ def discrete_ptset_read(int fn, int B, int Z, int D):
     elif ztype == Structured:
       dim = cdim
 
-    pnts = np.zeros((npnts,dim), dtype=np.int32)
+    pnts = np.zeros((npnts,dim), dtype=cgsize)
     pnts_ptr = <cgsize_t *>np.PyArray_DATA(pnts)
     return cg_discrete_ptset_read(fn, B, Z, D, pnts_ptr)
 
@@ -63,8 +63,8 @@ def discrete_ptset_read(int fn, int B, int Z, int D):
 @checked
 def discrete_ptset_write(int fn, int B, int Z,
     const char *discrete_name, GridLocation location,
-    PointSetType ptset_type, cgsize_t npnts,
+    PointSetType ptset_type,
     np.ndarray pnts):
     cdef int D
-    pnts_ptr = <cgsize_t *>np.PyArray_DATA(pnts)
-    return cg_discrete_ptset_write(fn, B, Z, discrete_name, location, ptset_type, npnts, pnts_ptr, &D), D
+    npnts = to_cgtype_array(pnts)
+    return cg_discrete_ptset_write(fn, B, Z, discrete_name, location, ptset_type, npnts.size, <cgsize_t *>ptr(npnts), &D), D

@@ -3,12 +3,16 @@
 #  libCGNS API v3.2
 #=========================================================================
 
+from libc cimport stdint
+
 cdef extern from "cgnslib.h":
 
     ctypedef int    cgerr_t
     ctypedef int    cgint_t
-    ctypedef int    cgsize_t
+    ctypedef stdint.uint64_t    cgsize_t
     ctypedef double cgid_t
+
+    cdef int CG_SIZEOF_SIZE
 
     #
     # constants
@@ -1062,7 +1066,7 @@ import os.path
 import numpy as np
 cimport numpy as np
 
-import inspect
+#import inspect
 
 # modes for cgns file
 READ   = 0
@@ -1136,6 +1140,28 @@ def checked(func):
         return res
 
     return with_checked
+
+if CG_SIZEOF_SIZE == 32:
+    cgsize = np.int32
+elif CG_SIZEOF_SIZE == 64:
+    cgsize = np.int64
+else:
+    cgsize = np.int32
+
+cdef inline np.ndarray buf(shape, dtype):
+    return np.zeros(shape, dtype=dtype, order='C')
+
+cdef inline np.ndarray fbuf(shape, dtype):
+    return np.zeros(shape, dtype=dtype, order='F')
+
+cdef inline np.ndarray to_array(arr, dtype):
+    return np.require(arr, dtype=dtype, requirements='C')
+
+cdef inline np.ndarray to_cgtype_array(arr):
+    return np.require(arr, dtype=cgsize, requirements='C')
+
+cdef inline void *ptr(narr):
+    return np.PyArray_DATA(narr)
 
 include "lcgns_lib.pyx"
 include "lcgns_base.pyx"
@@ -1436,7 +1462,8 @@ cdef asnumpydtype(DataType dtype):
     if (dtype==Character):   return np.uint8
     return None
 
-cdef fromnumpydtype(dtype):
+cdef fromnumpydtype(type_):
+    cdef dtype = np.dtype(type_)
     if (dtype.char=='f'):          return RealSingle
     if (dtype.char=='d'):          return RealDouble
     if (dtype.char=='i'):          return Integer

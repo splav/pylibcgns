@@ -41,20 +41,17 @@ def coord_info(int fn, int B, int Z, int C):
     #const cgsize_t * rmax, void *coord);
 @checked
 def coord_read(int fn, int B, int Z, coordname,
-                DataType dtype, rmin, rmax):
-    nrmin = np.asarray(rmin, dtype=np.int32, order='C')
-    nrmax = np.asarray(rmax, dtype=np.int32, order='C')
-    rminptr = <cgsize_t *>np.PyArray_DATA(nrmin)
-    rmaxptr = <cgsize_t *>np.PyArray_DATA(nrmax)
+                dtype, rmin, rmax):
+    cdef nrmin = to_cgtype_array(rmin)
+    cdef nrmax = to_cgtype_array(rmax)
 
     shape = tuple( int(e - s + 1) for s, e in zip(rmin,rmax))
     if shape[2] == 1:
         *shape, _ = shape
-    cdtype = asnumpydtype(dtype)
-    coord = np.zeros(shape, dtype=cdtype, order='F')
-    coord_ptr = <void *>np.PyArray_DATA(coord)
+    ctype = fromnumpydtype(dtype)
+    coord = fbuf(shape, dtype)
 
-    return cg_coord_read(fn, B, Z, coordname, dtype, rminptr, rmaxptr, coord_ptr), coord
+    return cg_coord_read(fn, B, Z, coordname, ctype, <cgsize_t *>ptr(nrmin), <cgsize_t *>ptr(nrmax), ptr(coord)), coord
 
 #int cg_coord_id(int fn, int B, int Z, int C, double *coord_id);
 @checked
@@ -66,24 +63,23 @@ def coord_id(int fn, int B, int Z, int C):
     #DataType_t type, const char * coordname,
     #const void * coord_ptr, int *C);
 @checked
-def coord_write(int fn, int B, int Z, DataType type,
+def coord_write(int fn, int B, int Z,
                 coordname, np.ndarray coord):
     cdef int C
-    coord_ptr = <void *>np.PyArray_DATA(coord)
-    return cg_coord_write(fn, B, Z, type, coordname, coord_ptr, &C), C
+    dtype = fromnumpydtype(coord.dtype)
+    return cg_coord_write(fn, B, Z, dtype, coordname, ptr(coord), &C), C
 
 #int cg_coord_partial_write(int fn, int B, int Z,
     #DataType_t type, const char * coordname,
     #const cgsize_t *rmin, const cgsize_t *rmax,
     #const void * coord_ptr, int *C);
 @checked
-def coord_partial_write(int fn, int B, int Z, DataType type,
+def coord_partial_write(int fn, int B, int Z,
                         coordname, rmin, rmax, coord):
     cdef int C
-    nrmin = np.asarray(rmin, dtype=np.int32, order='C')
-    nrmax = np.asarray(rmax, dtype=np.int32, order='C')
-    rminptr = <cgsize_t *>np.PyArray_DATA(nrmin)
-    rmaxptr = <cgsize_t *>np.PyArray_DATA(nrmax)
+    cdef nrmin = to_cgtype_array(rmin)
+    cdef nrmax = to_cgtype_array(rmax)
     coord_ptr = <void *>np.PyArray_DATA(coord)
+    dtype = fromnumpydtype(coord.dtype)
 
-    return cg_coord_partial_write(fn, B, Z, type, coordname, rminptr, rmaxptr, coord_ptr, &C), C
+    return cg_coord_partial_write(fn, B, Z, dtype, coordname,  <cgsize_t *>ptr(nrmin), <cgsize_t *>ptr(nrmax), coord_ptr, &C), C

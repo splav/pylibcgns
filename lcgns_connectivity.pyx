@@ -57,7 +57,7 @@ def hole_info(int fn, int B, int Z, int I):
 def hole_read(int fn, int B, int Z, int I):
     cdef int npnts
     *_, npnts = hole_info
-    pnts = np.zeros((npnts,), dtype=np.int32, order='F')
+    pnts = np.zeros((npnts,), dtype=cgsize, order='F')
     pnts_ptr = <cgsize_t *>np.PyArray_DATA(pnts)
     return cg_hole_read(fn, B, Z, I, pnts_ptr), pnts
 
@@ -73,11 +73,11 @@ def hole_id(int fn, int B, int Z, int I):
 @checked
 def hole_write(int fn, int B, int Z, const char * holename,
                 GridLocation location, PointSetType ptset_type,
-                int nptsets, cgsize_t npnts, np.ndarray pnts):
+                int nptsets, np.ndarray pnts):
     cdef int I
-    pnts_ptr = <cgsize_t *>np.PyArray_DATA(pnts)
-
-    return cg_hole_write(fn, B, Z, holename, location, ptset_type, nptsets, npnts, pnts_ptr, &I), I
+    cdef npnts = to_cgtype_array(pnts)
+    return cg_hole_write(fn, B, Z, holename, location, ptset_type, nptsets,
+                         npnts.size, <cgsize_t *>ptr(npnts), &I), I
 
 
 # Read and write GridConnectivity_t Nodes
@@ -112,22 +112,23 @@ def conn_info(int fn, int B, int Z, int I):
     return (cg_conn_info(fn, B, Z, I, connectname, &location, &type, &ptset_type, &npnts, donorname,
                             &donor_zonetype, &donor_ptset_type, &donor_datatype, &ndata_donor),
                             connectname, location, type, ptset_type, npnts, donorname,
-                            donor_zonetype, donor_ptset_type, donor_datatype, ndata_donor)
+                            donor_zonetype, donor_ptset_type, asnumpydtype(donor_datatype), ndata_donor)
 
 #int cg_conn_read(int file_number, int B, int Z, int I, cgsize_t *pnts,
     #DataType_t donor_datatype,
     #cgsize_t *donor_data);
 @checked
-def conn_read(int fn, int B, int Z, int I, DataType donor_datatype):
+def conn_read(int fn, int B, int Z, int I, dtype):
     cdef int npnts
     cdef int ndata_donor
     _,_,_,_,npnts,*_,ndata_donor = conn_info(fn, B, Z, I)
 
-    pnts = np.zeros((npnts,), dtype=np.int32, order='F')
+    pnts = np.zeros((npnts,), dtype=cgsize, order='F')
     pnts_ptr = <cgsize_t *>np.PyArray_DATA(pnts)
-    donor_data = np.zeros((ndata_donor,), dtype=np.int32, order='F')
+    donor_data = np.zeros((ndata_donor,), dtype=cgsize, order='F')
     donor_data_ptr = <cgsize_t *>np.PyArray_DATA(donor_data)
-    return cg_conn_read(fn, B, Z, I, pnts_ptr, donor_datatype, donor_data_ptr), pnts, donor_data
+    cdtype = fromnumpydtype(dtype)
+    return cg_conn_read(fn, B, Z, I, pnts_ptr, cdtype, donor_data_ptr), pnts, donor_data
 
 #int cg_conn_id(int fn, int B, int Z, int I, double *conn_id);
 @checked
@@ -146,14 +147,14 @@ def conn_id(int fn, int B, int Z, int I):
     #cgsize_t ndata_donor, const cgsize_t *donor_data, int *I);
 @checked
 def conn_write(int fn, int B, int Z, const char * connectname, GridLocation location,
-    GridConnectivityType type, PointSetType ptset_type, cgsize_t npnts, np.ndarray pnts,
-    const char * donorname, ZoneType donor_zonetype, PointSetType donor_ptset_type,
-    DataType donor_datatype, cgsize_t ndata_donor, np.ndarray donor_data):
+    GridConnectivityType type, PointSetType ptset_type, np.ndarray pnts,
+    const char * donorname, ZoneType donor_zonetype, PointSetType donor_ptset_type, np.ndarray donor_data):
     cdef int I
-    pnts_ptr = <cgsize_t *>np.PyArray_DATA(pnts)
-    donor_data_ptr = <cgsize_t *>np.PyArray_DATA(donor_data)
-    return cg_conn_write(fn, B, Z, connectname, location, type, ptset_type, npnts, pnts_ptr, donorname,
-                            donor_zonetype, donor_ptset_type, donor_datatype, ndata_donor, donor_data_ptr, &I), I
+    ctype = fromnumpydtype(donor_data.dtype)
+    cdef npnts = to_cgtype_array(pnts)
+    cdef ndonor_data = to_cgtype_array(donor_data)
+    return cg_conn_write(fn, B, Z, connectname, location, type, ptset_type, npnts.size, <cgsize_t *>ptr(npnts), donorname,
+                            donor_zonetype, donor_ptset_type, ctype, ndonor_data.size, <cgsize_t *>ptr(ndonor_data), &I), I
 
 #int cg_conn_write_short(int file_number, int B, int Z,
     #const char * connectname, GridLocation_t location,
@@ -162,10 +163,10 @@ def conn_write(int fn, int B, int Z, const char * connectname, GridLocation loca
     #cgsize_t npnts, const cgsize_t * pnts, const char * donorname, int *I);
 @checked
 def conn_write_short(int fn, int B, int Z, const char * connectname, GridLocation location,
-    GridConnectivityType type, PointSetType ptset_type, cgsize_t npnts, np.ndarray pnts, const char * donorname):
+    GridConnectivityType type, PointSetType ptset_type, np.ndarray pnts, const char * donorname):
     cdef int I
-    pnts_ptr = <cgsize_t *>np.PyArray_DATA(pnts)
-    return cg_conn_write_short(fn, B, Z, connectname, location, type, ptset_type, npnts, pnts_ptr, donorname, &I), I
+    cdef npnts = to_cgtype_array(pnts)
+    return cg_conn_write_short(fn, B, Z, connectname, location, type, ptset_type, npnts.size, <cgsize_t *>ptr(npnts), donorname, &I), I
 
 #int cg_conn_read_short(int file_number, int B, int Z, int I,
     #cgsize_t *pnts);
@@ -173,7 +174,7 @@ def conn_write_short(int fn, int B, int Z, const char * connectname, GridLocatio
 def conn_read_short(int fn, int B, int Z, int I):
     cdef int npnts
     _,_,_,_,npnts,*_ = conn_info(fn, B, Z, I)
-    pnts = np.zeros((npnts,), dtype=np.int32, order='F')
+    pnts = np.zeros((npnts,), dtype=cgsize, order='F')
     pnts_ptr = <cgsize_t *>np.PyArray_DATA(pnts)
     return cg_conn_read_short(fn, B, Z, I, pnts_ptr), pnts
 
@@ -192,16 +193,10 @@ def conn_n1to1(int fn, int B, int Z):
 def conn_1to1_read(int fn, int B, int Z, int I):
     cdef char connectname[MAXNAMELENGTH]
     cdef char donorname[MAXNAMELENGTHEXTENDED]
-    cdef cgsize_t * range_ptr
-    cdef cgsize_t * donor_range_ptr
-    cdef int * tr_ptr
-    _range = np.ones((2,3), dtype=np.int32, order='F')
-    range_ptr = <cgsize_t *>np.PyArray_DATA(_range)
-    donor_range = np.ones((2,3), dtype=np.int32, order='F')
-    donor_range_ptr = <cgsize_t *>np.PyArray_DATA(donor_range)
-    transform = np.ones((3,), dtype=np.int32, order='F')
-    transform_ptr=<int *>np.PyArray_DATA(transform)
-    return (cg_1to1_read(fn, B, Z, I, connectname, donorname, range_ptr, donor_range_ptr, transform_ptr),
+    cdef _range = fbuf((2,3), cgsize)
+    cdef donor_range = fbuf((2,3), cgsize)
+    transform = fbuf((3,), cgsize)
+    return (cg_1to1_read(fn, B, Z, I, connectname, donorname, <cgsize_t *>ptr(range), <cgsize_t *>ptr(donor_range), <int *>ptr(transform)),
             connectname, donorname, _range, donor_range, transform)
 
 #int cg_1to1_id(int fn, int B, int Z, int I, double *one21_id);
@@ -217,20 +212,12 @@ def conn_1to1_id(int fn, int B, int Z, int I):
 def conn_1to1_write(int fn, int B, int Z, const char * connectname,
     const char * donorname, _range, donor_range, transform):
     cdef int I
-    cdef cgsize_t * crange_ptr
-    cdef cgsize_t * drange_ptr
-    cdef int * trptr
-
-    carray = np.int32(_range)
-    darray = np.int32(donor_range)
-    tarray = np.int32(transform)
-
-    crange_ptr = <cgsize_t *>np.PyArray_DATA(carray)
-    drange_ptr = <cgsize_t *>np.PyArray_DATA(darray)
-    tr_ptr = <int *>np.PyArray_DATA(tarray)
+    nrange = to_cgtype_array(_range)
+    ndrange = to_cgtype_array(donor_range)
+    tarray = np.intc(transform)
 
     return cg_1to1_write(fn, B, Z, connectname, donorname,
-                                      crange_ptr, drange_ptr, tr_ptr, &I), I
+                                      <cgsize_t *>ptr(nrange), <cgsize_t *>ptr(ndrange), <int *>ptr(tarray), &I), I
 
 
 # Read all GridConnectivity1to1_t Nodes of a base
@@ -257,14 +244,12 @@ def conn_1to1_read_global(int fn, int B):
 @checked
 def conn_periodic_read(int fn, int B, int Z, int I):
     cdef cdim
-    cdef np.ndarray RotationCenter, RotationAngle, Translation
-
     cdim = cell_dim(fn, B)
-    RotationCenter = np.ones(cdim, dtype=np.float32, order='F')
-    RotationAngle = np.ones(cdim, dtype=np.float32, order='F')
-    Translation = np.ones(cdim, dtype=np.float32, order='F')
-    return cg_conn_periodic_read(fn, B, Z, I, <float *>RotationCenter.data, <float *>RotationCenter.data,
-                                     <float *>RotationCenter.data), RotationCenter, RotationAngle, Translation
+    cdef nRotationCenter = fbuf(cdim, np.float32)
+    cdef nRotationAngle = fbuf(cdim, np.float32)
+    cdef nTranslation = fbuf(cdim, np.float32)
+    return cg_conn_periodic_read(fn, B, Z, I, <float *>ptr(nRotationCenter), <float *>ptr(nRotationAngle),
+                                 <float *>ptr(nTranslation)), nRotationCenter, nRotationAngle, nTranslation
 
 #int cg_conn_periodic_write(int file_number, int B, int Z, int I,
     #float *const RotationCenter, float *const RotationAngle,
@@ -272,13 +257,10 @@ def conn_periodic_read(int fn, int B, int Z, int I):
 @checked
 def conn_periodic_write(int fn, int B, int Z, int I, RotationCenter,
                         RotationAngle, Translation):
-    nRotationCenter = np.asarray(RotationCenter, dtype=np.float32, order='F')
-    nRotationAngle = np.asarray(RotationAngle, dtype=np.float32, order='F')
-    nTranslation = np.asarray(Translation, dtype=np.float32, order='F')
-    RotationCenter_ptr = <float *>np.PyArray_DATA(nRotationCenter)
-    RotationAngle_ptr = <float *>np.PyArray_DATA(nRotationAngle)
-    Translation_ptr = <float *>np.PyArray_DATA(nTranslation)
-    return cg_conn_periodic_write(fn, B, Z, I, RotationCenter_ptr, RotationAngle_ptr, Translation_ptr)
+    cdef nRotationCenter = to_array(RotationCenter, np.float32)
+    cdef nRotationAngle = to_array(RotationAngle, np.float32)
+    cdef nTranslation = to_array(Translation, np.float32)
+    return cg_conn_periodic_write(fn, B, Z, I, <float *>ptr(nRotationCenter), <float *>ptr(nRotationAngle), <float *>ptr(nTranslation))
 
 #int cg_1to1_periodic_write(int file_number, int B, int Z, int I,
     #float *const RotationCenter, float *const RotationAngle,
@@ -286,28 +268,23 @@ def conn_periodic_write(int fn, int B, int Z, int I, RotationCenter,
 @checked
 def conn_1to1_periodic_write(int fn, int B, int Z, int I, RotationCenter,
                         RotationAngle, Translation):
-                        
-    nRotationCenter = np.asarray(RotationCenter, dtype=np.float32, order='F')
-    nRotationAngle = np.asarray(RotationAngle, dtype=np.float32, order='F')
-    nTranslation = np.asarray(Translation, dtype=np.float32, order='F')
-    RotationCenter_ptr = <float *>np.PyArray_DATA(nRotationCenter)
-    RotationAngle_ptr = <float *>np.PyArray_DATA(nRotationAngle)
-    Translation_ptr = <float *>np.PyArray_DATA(nTranslation)
-    return cg_1to1_periodic_write(fn, B, Z, I, RotationCenter_ptr, RotationAngle_ptr, Translation_ptr)
+
+    cdef nRotationCenter = to_array(RotationCenter, np.float32)
+    cdef nRotationAngle = to_array(RotationAngle, np.float32)
+    cdef nTranslation = to_array(Translation, np.float32)
+    return cg_1to1_periodic_write(fn, B, Z, I, <float *>ptr(nRotationCenter), <float *>ptr(nRotationAngle), <float *>ptr(nTranslation))
 
 #int cg_1to1_periodic_read(int file_number, int B, int Z, int I,
     #float *RotationCenter, float *RotationAngle, float *Translation);
 @checked
 def conn_1to1_periodic_read(int fn, int B, int Z, int I):
     cdef cdim
-    cdef np.ndarray RotationCenter, RotationAngle, Translation
-
     cdim = cell_dim(fn, B)
-    RotationCenter = np.ones(cdim, dtype=np.float32, order='F')
-    RotationAngle = np.ones(cdim, dtype=np.float32, order='F')
-    Translation = np.ones(cdim, dtype=np.float32, order='F')
-    return cg_1to1_periodic_read(fn, B, Z, I, <float *>RotationCenter.data, <float *>RotationCenter.data,
-                                     <float *>RotationCenter.data), RotationCenter, RotationAngle, Translation
+    cdef nRotationCenter = fbuf(cdim, np.float32)
+    cdef nRotationAngle = fbuf(cdim, np.float32)
+    cdef nTranslation = fbuf(cdim, np.float32)
+    return cg_1to1_periodic_read(fn, B, Z, I, <float *>ptr(nRotationCenter), <float *>ptr(nRotationAngle),
+                                 <float *>ptr(nTranslation)), nRotationCenter, nRotationAngle, nTranslation
 
 # Read and write GridConnectivityProperty_t/AverageInterface_t Nodes
 

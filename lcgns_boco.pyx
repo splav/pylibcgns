@@ -23,7 +23,7 @@ def boco_info(int fn, int B, int Z, int BC):
 
     return (cg_boco_info(fn, B, Z, BC, boconame, &bocotype, &ptset_type, &npnts,
                            &NormalIndex, &NormalListSize, &NormalDataType, &ndataset),
-                boconame, bocotype, ptset_type, npnts, NormalIndex, NormalListSize, NormalDataType, ndataset)
+                boconame, bocotype, ptset_type, npnts, NormalIndex, NormalListSize, asnumpydtype(NormalDataType), ndataset)
 
 #int cg_boco_read(int fn, int B, int Z, int BC, cgsize_t *pnts,
     #void *NormalList);
@@ -44,7 +44,7 @@ def boco_read(int fn, int B, int Z, int BC):
     else:
         raise CGNSException(0, "unknown zone type")
 
-    pnts = np.zeros((npnts,dim), dtype=np.int32)
+    pnts = np.zeros((npnts,dim), dtype=cgsize)
     pnts_ptr = <cgsize_t *>np.PyArray_DATA(pnts)
 
     if NormalListSize == 0:
@@ -72,10 +72,11 @@ def boco_id(int fn, int B, int Z, int BC):
     #cgsize_t npnts, const cgsize_t * pnts, int *BC);
 @checked
 def boco_write(int fn, int B, int Z, const char * boconame, BCType bocotype, PointSetType ptset_type,
-        cgsize_t npnts, np.ndarray pnts):
+        np.ndarray pnts):
     cdef int BC
-    pnts_ptr = <cgsize_t *>np.PyArray_DATA(pnts)
-    return cg_boco_write(fn, B, Z, boconame, bocotype, ptset_type, npnts, pnts_ptr, &BC), BC
+    _, c_dim, _ = base_read(fn, B)
+    cdef npnts = to_cgtype_array(pnts)
+    return cg_boco_write(fn, B, Z, boconame, bocotype, ptset_type, npnts.size/c_dim, <cgsize_t *>ptr(npnts), &BC), BC
 
 #int cg_boco_normal_write(int file_number, int B, int Z, int BC,
     #const int * NormalIndex, int NormalListFlag,
@@ -83,11 +84,8 @@ def boco_write(int fn, int B, int Z, const char * boconame, BCType bocotype, Poi
 @checked
 def boco_normal_write(int fn, int B, int Z, int BC, np.ndarray NormalIndex, int NormalListFlag,
         DataType NormalDataType, np.ndarray NormalList):
-    _, cdim, _ = base_read(fn, B)
-    NormalList_ptr = np.PyArray_DATA(NormalList)
-    nNormalIndex = np.asarray(NormalIndex, dtype=np.int32, order='F')
-    NormalIndex_ptr = <int *>np.PyArray_DATA(nNormalIndex)
-    return cg_boco_normal_write(fn, B, Z, BC, NormalIndex_ptr, NormalListFlag, NormalDataType, NormalList_ptr)
+    nNormalIndex = to_array(NormalIndex, np.intc)
+    return cg_boco_normal_write(fn, B, Z, BC, <int *>ptr(NormalIndex), NormalListFlag, fromnumpydtype(NormalList.dtype), ptr(NormalList))
 
 #int cg_boco_gridlocation_read(int file_number, int B, int Z,
     #int BC, GridLocation_t *location);
