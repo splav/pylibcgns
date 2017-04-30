@@ -7,9 +7,6 @@ import platform
 
 include_dirs = [np.get_include()]
 library_dirs = []
-if platform.system() == "Windows":
-    library_dirs += [r"C:\Program Files\cgns_15\lib"]
-    include_dirs += [r"C:\Program Files\cgns_15\include"]
 
 ext_modules = [Extension("pylibcgns",
                      ["pylibcgns.pyx"],
