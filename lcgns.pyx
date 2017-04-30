@@ -5,7 +5,7 @@
 
 from libc cimport stdint
 
-cdef extern from <cgnslib.h>:
+cdef extern from "<cgnslib.h>":
 
     ctypedef int    cgerr_t
     ctypedef int    cgint_t
