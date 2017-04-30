@@ -5,7 +5,7 @@ import numpy as np
 
 import platform
 
-include_dirs = [np.get_include()]
+include_dirs = [np.get_include(),"../include"]
 library_dirs = []
 
 ext_modules = [Extension("pylibcgns",
