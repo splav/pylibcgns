@@ -3,10 +3,15 @@ from distutils.extension import Extension
 from Cython.Distutils import build_ext
 import numpy as np
 
-import platform
-
-include_dirs = [np.get_include(),"../include"]
+include_dirs = [np.get_include()]
 library_dirs = []
+
+#conda include path support
+import os
+if 'PREFIX' in os.environ:
+    sys_include = os.path.join(os.environ['PREFIX'], 'include')
+    print(sys_include)
+    include_dirs += [sys_include]
 
 ext_modules = [Extension("pylibcgns",
                      ["pylibcgns.pyx"],
