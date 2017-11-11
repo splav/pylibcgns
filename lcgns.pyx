@@ -1166,7 +1166,7 @@ cdef inline void *ptr(narr):
 include "lcgns_lib.pyx"
 include "lcgns_base.pyx"
 include "lcgns_zone.pyx"
-#include "lcgns_family.pyx" #NOT IMPLEMENTED
+include "lcgns_family.pyx"
 ##include "lcgns_geometry.pyx" #NOT IMPLEMENTED
 include "lcgns_grid.pyx"
 #include "lcgns_elements.pyx" #NOT IMPLEMENTED
