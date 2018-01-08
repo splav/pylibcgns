@@ -24,7 +24,7 @@ ext_modules = [Extension("pylibcgns",
 setup(
   name = 'pylibcgns',
   cmdclass = {'build_ext': build_ext},
-  version='0.1.0',
+  version='0.1.1a',
   description='CGNS C-library wrapper',
 
   author='Aleksandrov Sergey',
