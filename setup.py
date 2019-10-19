@@ -16,7 +16,7 @@ if 'PREFIX' in os.environ:
 ext_modules = [Extension("pylibcgns",
                      ["pylibcgns.pyx"],
                      language='c',
-                     libraries=["cgns", "hdf5"],
+                     libraries=["cgns", "hdf5", "z"],
                      library_dirs=library_dirs,
                      include_dirs=include_dirs,
                      )]
@@ -31,11 +31,9 @@ setup(
   author_email='splavgm@gmail.com',
 
   url='https://github.com/splav/pylibcgns',
-  download_url='https://github.com/splav/pylibcgns/archive/0.1.0.tar.gz',
+  download_url='https://github.com/splav/pylibcgns/archive/0.1.1a.tar.gz',
 
   license='MIT',
-
-
 
   ext_modules = ext_modules
 )
